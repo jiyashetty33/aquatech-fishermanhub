@@ -1,3 +1,4 @@
+
 # AI-Powered Digital Fisheries Marketplace and Port Management System
 
 A simple full-stack hackathon project for Mangaluru coastal operations built using Node.js, Express, MySQL, vanilla HTML/CSS/JS, JWT auth, and browser speech APIs.
@@ -46,3 +47,5 @@ This application connects fishermen, buyers, and port officials through a digita
 ## Notes
 
 This project is intentionally simple and designed for teaching and hackathon demonstration. It does not use external payment gateways, real GPS, or real emergency dispatch integration.
+
+
