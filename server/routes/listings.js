@@ -16,12 +16,22 @@ router.post('/', authenticateToken, authorizeRole('FISHERMAN', 'ADMIN'), (req, r
   }
 
   const fisherData = req.app.locals.data.fishermen.find((entry) => entry.userId === req.user.id) || req.app.locals.data.fishermen[0];
+  const requestedQuantity = Number(quantity);
+  const caughtQuantity = req.app.locals.data.catches
+    .filter((entry) => entry.vesselId === fisherData.vesselId && entry.fishSpecies.toLowerCase() === String(fishSpecies).toLowerCase())
+    .reduce((total, entry) => total + Number(entry.quantity || 0), 0);
+  const listedQuantity = req.app.locals.data.listings
+    .filter((entry) => entry.fishermanId === fisherData.id && entry.fishSpecies.toLowerCase() === String(fishSpecies).toLowerCase() && entry.status === 'ACTIVE')
+    .reduce((total, entry) => total + Number(entry.availableQuantity || entry.quantity || 0), 0);
+  if (caughtQuantity > 0 && requestedQuantity > caughtQuantity - listedQuantity) {
+    return res.status(400).json({ message: `Only ${Math.max(0, caughtQuantity - listedQuantity)} kg of ${fishSpecies} is available to list.` });
+  }
   const listing = {
     id: Date.now(),
     fishermanId: fisherData.id,
     fishSpecies,
-    quantity: Number(quantity),
-    availableQuantity: Number(quantity),
+    quantity: requestedQuantity,
+    availableQuantity: requestedQuantity,
     quality,
     price: Number(price),
     saleType,

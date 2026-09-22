@@ -92,6 +92,9 @@ function createDemoData() {
       { id: 1, fishermanId: 2, vesselId: 2, title: 'Vessel Returning', message: 'Sea Pearl is returning to the harbor.', type: 'INFO', time: new Date().toISOString() },
       { id: 2, fishermanId: 3, vesselId: 3, title: 'Emergency', message: 'Crew reported engine warning near Mangaluru coast.', type: 'EMERGENCY', time: new Date().toISOString() }
     ],
+    vesselStatusHistory: [
+      { id: 1, vesselId: 1, oldStatus: 'AT_HARBOR', newStatus: 'AT_HARBOR', updatedBy: 2, timestamp: new Date().toISOString(), source: 'OFFICIAL' }
+    ],
     transactions: [
       { id: 1, buyerId: 11, fishermanId: 1, orderId: 1, amount: 6000, type: 'SALE', status: 'PAID' },
       { id: 2, buyerId: 12, fishermanId: 2, orderId: 2, amount: 4500, type: 'SALE', status: 'PENDING' }

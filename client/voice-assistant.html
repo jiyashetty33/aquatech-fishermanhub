@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voice Assistant | Fisherman Hub</title>
+    <link rel="stylesheet" href="css/fisherman.css" />
+    <style>
+      .voice-page { max-width: 760px; margin: 0 auto; padding: 1rem; }
+      .back-link { color: #1273b5; font-weight: 700; text-decoration: none; }
+      .voice-card { margin-top: 1rem; text-align: center; }
+      .voice-card p { color: #527087; }
+      .microphone-button { width: 7rem; height: 7rem; border-radius: 50%; font-size: 2.4rem; margin: 1rem auto; display: block; background: linear-gradient(135deg, #1084c3, #1fb7d9); }
+      .transcript { min-height: 3rem; padding: 1rem; background: #f1f9fd; border-radius: 12px; text-align: left; }
+      .examples { text-align: left; }
+      .examples li { margin: 0.6rem 0; color: #527087; }
+      .confirmation { margin-top: 1rem; padding: 1rem; border: 1px solid #bfe0ee; border-radius: 12px; text-align: left; }
+      .confirmation-actions { display: flex; gap: 0.6rem; }
+    </style>
+  </head>
+  <body>
+    <main id="voiceAssistantPage" class="voice-page">
+      <a class="back-link" href="fisherman.html">&#8592; Back to Dashboard</a>
+      <section class="card voice-card">
+        <div class="voice-icon" aria-hidden="true">&#127908;</div>
+        <h1>Voice Assistant</h1>
+        <p>Speak naturally. I can help with your vessel, catch, listings, auctions and more.</p>
+        <button id="startListeningBtn" class="microphone-button" aria-label="Start listening">&#127908;</button>
+        <p><strong>Recognized Speech</strong></p>
+        <div id="voiceTranscript" class="transcript">Ready when you are.</div>
+        <div id="voiceResponse" aria-live="polite"></div>
+      </section>
+      <section class="card examples">
+        <h2>Example Commands</h2>
+        <ul>
+          <li>"My boat is returning."</li>
+          <li>"I caught 30 kilos of mackerel."</li>
+          <li>"Show my active auctions."</li>
+          <li>"What is the market price of tuna?"</li>
+          <li>"Show my earnings."</li>
+          <li>"Help me."</li>
+        </ul>
+      </section>
+    </main>
+    <script src="js/api.js"></script>
+    <script src="js/voiceAssistant.js"></script>
+  </body>
+</html>

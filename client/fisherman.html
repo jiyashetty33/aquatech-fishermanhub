@@ -68,12 +68,16 @@
           <div id="listingList"></div>
         </section>
 
-        <section class="card panel">
-          <h3>Voice Assistant</h3>
-          <button id="voiceBtn" class="voice-btn">🎙️ Speak to Assistant</button>
-          <button id="listenBtn" class="secondary">🔊 Listen</button>
-          <div id="voiceTranscript"></div>
-          <div id="voiceResponse"></div>
+        <section class="card panel voice-entry">
+          <div>
+            <span class="eyebrow">Fisherman Hub</span>
+            <h3>Voice Assistant</h3>
+            <p>Speak naturally to manage your vessel, catch, listings, auctions and more.</p>
+          </div>
+          <a class="voice-link" href="voice-assistant.html" aria-label="Open Voice Assistant">
+            <span class="voice-icon" aria-hidden="true">&#127908;</span>
+            <span>Open assistant <span aria-hidden="true">&#8594;</span></span>
+          </a>
         </section>
 
         <section class="card panel">
@@ -100,7 +104,6 @@
 
     <script src="js/translations.js"></script>
     <script src="js/api.js"></script>
-    <script src="js/voiceAssistant.js"></script>
     <script src="js/fisherman.js"></script>
   </body>
 </html>

@@ -14,11 +14,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     localStorage.setItem('language', languageSelect.value);
   });
 
-  document.getElementById('voiceBtn').addEventListener('click', () => voiceAssistant.start());
-  document.getElementById('listenBtn').addEventListener('click', () => {
-    voiceAssistant.speak('Your vessel is ready. Please speak a command.');
-  });
-
   document.getElementById('statusDeparted').addEventListener('click', async () => {
     try {
       const result = await request('/vessels/1/status', { method: 'PUT', token, body: JSON.stringify({ status: 'DEPARTED' }) });
@@ -41,9 +36,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
       const result = await request('/catches', { method: 'POST', token, body: JSON.stringify(payload) });
-      document.getElementById('voiceResponse').textContent = `Catch saved: ${result.fishSpecies}`;
+      document.getElementById('statusResult').textContent = `Catch saved: ${result.fishSpecies}`;
     } catch (error) {
-      document.getElementById('voiceResponse').textContent = error.message;
+      document.getElementById('statusResult').textContent = error.message;
     }
   });
 
@@ -59,9 +54,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
       const result = await request('/listings', { method: 'POST', token, body: JSON.stringify(payload) });
-      document.getElementById('voiceResponse').textContent = `Listing created: ${result.fishSpecies}`;
+      document.getElementById('statusResult').textContent = `Listing created: ${result.fishSpecies}`;
     } catch (error) {
-      document.getElementById('voiceResponse').textContent = error.message;
+      document.getElementById('statusResult').textContent = error.message;
     }
   });
 
@@ -83,7 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const orders = await request('/orders', { method: 'GET', token });
     document.getElementById('ordersList').innerHTML = orders.map((o) => `<p>Order #${o.id}: ₹${o.totalAmount}</p>`).join('');
   } catch (error) {
-    document.getElementById('voiceResponse').textContent = error.message;
+    document.getElementById('statusResult').textContent = error.message;
   }
 
   document.getElementById('logoutBtn').addEventListener('click', () => {
