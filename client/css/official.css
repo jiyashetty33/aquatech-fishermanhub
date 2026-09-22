@@ -1,0 +1,59 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #eef6fb;
+  color: #14374f;
+}
+.official-app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.official-grid {
+  display: grid;
+  gap: 1rem;
+}
+.card {
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 8px 18px rgba(20, 55, 79, 0.08);
+  padding: 1rem;
+}
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 1rem;
+}
+.stat-box {
+  background: #f3fbff;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+}
+.stat-box strong { display: block; font-size: 1.8rem; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 0.65rem;
+  border-bottom: 1px solid #dfeaf3;
+  text-align: left;
+}
+button {
+  background: #1273b5;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+}
+button.secondary { background: #dfeffd; color: #12314a; }
+@media (max-width: 760px) {
+  table { display: block; overflow-x: auto; }
+}

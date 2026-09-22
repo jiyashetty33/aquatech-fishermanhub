@@ -1,0 +1,44 @@
+body {
+  margin: 0;
+  background: #edf8ff;
+  color: #12314a;
+  font-family: Arial, sans-serif;
+}
+.fisherman-app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+.card {
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 8px 16px rgba(18, 49, 74, 0.08);
+  padding: 1rem;
+}
+button {
+  background: #1273b5;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  margin: 0.25rem 0;
+  font-weight: 600;
+}
+button.secondary { background: #dfeffd; color: #12314a; }
+.voice-btn { background: linear-gradient(135deg, #1084c3, #1fb7d9); }
+input, select { width: 100%; margin-bottom: 0.7rem; padding: 0.75rem; border-radius: 10px; border: 1px solid #cfe3f5; }
+.status-box { margin-top: 0.8rem; min-height: 2rem; }
+@media (max-width: 600px) {
+  .topbar { flex-direction: column; align-items: flex-start; }
+}

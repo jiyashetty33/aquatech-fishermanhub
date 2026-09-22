@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Port Official Dashboard</title>
+    <link rel="stylesheet" href="css/official.css" />
+  </head>
+  <body>
+    <div class="official-app">
+      <header class="topbar official-header">
+        <div>
+          <h1>Port Operations Dashboard</h1>
+          <p>Harbor and vessel operations</p>
+        </div>
+        <div class="top-actions">
+          <span id="lastUpdatedLabel">Last updated: --</span>
+          <button id="logoutBtn" class="secondary">Logout</button>
+        </div>
+      </header>
+
+      <main class="official-grid">
+        <section class="card stat-grid">
+          <div class="stat-box"><strong id="totalVessels">0</strong><span>Total</span></div>
+          <div class="stat-box"><strong id="atHarbor">0</strong><span>At Harbor</span></div>
+          <div class="stat-box"><strong id="departed">0</strong><span>Departed</span></div>
+          <div class="stat-box"><strong id="fishing">0</strong><span>Fishing</span></div>
+          <div class="stat-box"><strong id="returning">0</strong><span>Returning</span></div>
+          <div class="stat-box"><strong id="anchored">0</strong><span>Anchored</span></div>
+          <div class="stat-box"><strong id="arrived">0</strong><span>Arrived</span></div>
+          <div class="stat-box"><strong id="docked">0</strong><span>Docked</span></div>
+        </section>
+
+        <section class="card table-panel">
+          <h3>Vessel Status Table</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Vessel ID</th>
+                <th>Vessel Name</th>
+                <th>Fisherman/Owner</th>
+                <th>Status</th>
+                <th>Departure Time</th>
+                <th>Expected Return</th>
+                <th>Last Updated</th>
+              </tr>
+            </thead>
+            <tbody id="officialVesselTable"></tbody>
+          </table>
+        </section>
+
+        <section class="card">
+          <h3>Fishing Trips</h3>
+          <div id="officialTrips"></div>
+        </section>
+
+        <section class="card">
+          <h3>Port Activity</h3>
+          <div id="portActivity"></div>
+        </section>
+
+        <section class="card">
+          <h3>Operational Alerts</h3>
+          <div id="alertsList"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/official.js"></script>
+  </body>
+</html>

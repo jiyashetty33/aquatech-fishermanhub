@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fisherman Dashboard</title>
+    <link rel="stylesheet" href="css/fisherman.css" />
+  </head>
+  <body>
+    <div class="fisherman-app">
+      <header class="topbar">
+        <div>
+          <h1>Fisherman Hub</h1>
+          <p id="userLabel">Welcome</p>
+        </div>
+        <div class="top-actions">
+          <select id="languageSelect">
+            <option value="en">English</option>
+            <option value="kn">ಕನ್ನಡ</option>
+            <option value="tulu">ತುಳು</option>
+            <option value="ml">മലയാളം</option>
+          </select>
+          <button id="logoutBtn" class="secondary">Logout</button>
+        </div>
+      </header>
+
+      <main class="dashboard-grid">
+        <section class="card panel">
+          <h3>My Vessel</h3>
+          <div id="vesselInfo"></div>
+        </section>
+
+        <section class="card panel">
+          <h3>Vessel Status</h3>
+          <button id="statusDeparted">Set Departed</button>
+          <button id="statusReturning">Set Returning</button>
+          <button id="statusDocked">Set Docked</button>
+          <div id="statusResult" class="status-box"></div>
+        </section>
+
+        <section class="card panel">
+          <h3>My Fishing Trip</h3>
+          <div id="tripInfo"></div>
+        </section>
+
+        <section class="card panel">
+          <h3>Record Catch</h3>
+          <form id="catchForm">
+            <input id="catchFish" placeholder="Fish species" required />
+            <input id="catchQuantity" type="number" placeholder="Quantity" required />
+            <input id="catchLocation" placeholder="Location" />
+            <button type="submit">Save Catch</button>
+          </form>
+        </section>
+
+        <section class="card panel">
+          <h3>My Fish Listings</h3>
+          <form id="listingForm">
+            <input id="listingFish" placeholder="Fish species" required />
+            <input id="listingQuantity" type="number" placeholder="Quantity" required />
+            <input id="listingPrice" type="number" placeholder="Price per kg" required />
+            <select id="listingType">
+              <option value="DIRECT_SALE">Direct Sale</option>
+              <option value="AUCTION">Auction</option>
+            </select>
+            <button type="submit">Create Listing</button>
+          </form>
+          <div id="listingList"></div>
+        </section>
+
+        <section class="card panel">
+          <h3>Voice Assistant</h3>
+          <button id="voiceBtn" class="voice-btn">🎙️ Speak to Assistant</button>
+          <button id="listenBtn" class="secondary">🔊 Listen</button>
+          <div id="voiceTranscript"></div>
+          <div id="voiceResponse"></div>
+        </section>
+
+        <section class="card panel">
+          <h3>My Orders</h3>
+          <div id="ordersList"></div>
+        </section>
+
+        <section class="card panel">
+          <h3>My Earnings</h3>
+          <div id="earningsInfo"></div>
+        </section>
+
+        <section class="card panel">
+          <h3>Market Prices</h3>
+          <div id="priceList"></div>
+        </section>
+
+        <section class="card panel">
+          <h3>Notifications</h3>
+          <div id="notificationsList"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="js/translations.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/voiceAssistant.js"></script>
+    <script src="js/fisherman.js"></script>
+  </body>
+</html>

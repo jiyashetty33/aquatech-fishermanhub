@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fisherman Portal Login</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="app-shell login-shell">
+      <div class="brand-panel">
+        <h1>HarborLink</h1>
+        <p>AI-powered fisheries marketplace and port operations demo</p>
+      </div>
+      <div class="card login-card">
+        <h2>Login</h2>
+        <form id="loginForm">
+          <label>Email</label>
+          <input id="email" type="email" value="fisher1@demo.local" required />
+          <label>Password</label>
+          <input id="password" type="password" value="fisher123" required />
+          <button type="submit">Login</button>
+        </form>
+        <p id="loginStatus" class="status-text"></p>
+        <div class="demo-credentials">
+          <h3>Demo users</h3>
+          <ul>
+            <li>Fisherman: fisher1@demo.local / fisher123</li>
+            <li>Official: official1@demo.local / official123</li>
+            <li>Buyer: buyer1@demo.local / buyer123</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+  </body>
+</html>

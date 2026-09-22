@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Marketplace</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <style>
+      body { padding: 2rem; }
+      .market-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+      .listing-card { background: white; border-radius: 16px; padding: 1rem; box-shadow: 0 10px 20px rgba(0,0,0,0.06); }
+      .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+      button { margin-top: 0.5rem; }
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <h1>Marketplace</h1>
+      <button id="logoutBtn" class="secondary">Logout</button>
+    </div>
+    <div id="marketplaceList" class="market-grid"></div>
+
+    <script src="js/api.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', async () => {
+        const token = localStorage.getItem('jwtToken');
+        if (!token) {
+          window.location.href = 'login.html';
+          return;
+        }
+
+        try {
+          const listings = await request('/listings', { method: 'GET', token });
+          const container = document.getElementById('marketplaceList');
+          container.innerHTML = listings.map((item) => `
+            <div class="listing-card">
+              <h3>${item.fishSpecies}</h3>
+              <p>Qty: ${item.quantity} kg</p>
+              <p>Price: ₹${item.price}/kg</p>
+              <p>Type: ${item.saleType}</p>
+              <button>Buy / Bid</button>
+            </div>
+          `).join('');
+        } catch (error) {
+          document.getElementById('marketplaceList').innerHTML = `<p>${error.message}</p>`;
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+          localStorage.removeItem('jwtToken');
+          localStorage.removeItem('user');
+          window.location.href = 'login.html';
+        });
+      });
+    </script>
+  </body>
+</html>
