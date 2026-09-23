@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { once } = require('node:events');
 const http = require('node:http');
 
+process.env.DB_MODE = 'memory';
 const { app, startServer } = require('../server/server.js');
 
 async function requestJson({ path, method = 'GET', body, token }) {
@@ -78,4 +79,97 @@ test('PORT_OFFICIAL cannot retrieve fisherman earnings', async () => {
 
   assert.equal(res.status, 403);
   assert.match(JSON.stringify(res.data), /Forbidden|insufficient permissions/i);
+});
+
+test('fisherman only sees their own orders and admin sees all orders', async () => {
+  const fisherLogin = await requestJson({
+    path: '/api/auth/login',
+    method: 'POST',
+    body: { email: 'fisher1@demo.local', password: 'fisher123' }
+  });
+
+  const fishermanOrders = await requestJson({
+    path: '/api/orders',
+    method: 'GET',
+    token: fisherLogin.data.token
+  });
+
+  assert.equal(fishermanOrders.status, 200);
+  assert.deepEqual(fishermanOrders.data.map((order) => order.fishermanId), [1]);
+
+  const buyerLogin = await requestJson({
+    path: '/api/auth/login',
+    method: 'POST',
+    body: { email: 'buyer1@demo.local', password: 'buyer123' }
+  });
+
+  const buyerOrders = await requestJson({
+    path: '/api/orders',
+    method: 'GET',
+    token: buyerLogin.data.token
+  });
+
+  assert.equal(buyerOrders.status, 200);
+  assert.deepEqual(buyerOrders.data.map((order) => order.buyerId), [11]);
+
+  const adminLogin = await requestJson({
+    path: '/api/auth/login',
+    method: 'POST',
+    body: { email: 'admin@demo.local', password: 'admin123' }
+  });
+
+  const adminOrders = await requestJson({
+    path: '/api/orders',
+    method: 'GET',
+    token: adminLogin.data.token
+  });
+
+  assert.equal(adminOrders.status, 200);
+  assert.ok(adminOrders.data.length >= 2);
+});
+
+test('fisherman dashboard exposes real catches for the listing dropdown and listing creation uses the catch ownership', async () => {
+  const fisherLogin = await requestJson({
+    path: '/api/auth/login',
+    method: 'POST',
+    body: { email: 'fisher1@demo.local', password: 'fisher123' }
+  });
+
+  const catches = await requestJson({
+    path: '/api/catches',
+    method: 'GET',
+    token: fisherLogin.data.token
+  });
+
+  assert.equal(catches.status, 200);
+  assert.ok(Array.isArray(catches.data));
+  assert.ok(catches.data.length > 0);
+
+  const dashboard = await requestJson({
+    path: '/api/fisherman/dashboard',
+    method: 'GET',
+    token: fisherLogin.data.token
+  });
+
+  assert.equal(dashboard.status, 200);
+  assert.ok(Array.isArray(dashboard.data.catches));
+  assert.ok(dashboard.data.catches.length > 0);
+
+  const catchId = dashboard.data.catches[0].id;
+  const createListing = await requestJson({
+    path: '/api/listings',
+    method: 'POST',
+    token: fisherLogin.data.token,
+    body: {
+      catchId,
+      fishSpecies: dashboard.data.catches[0].fishSpecies,
+      quantity: 5,
+      price: 220,
+      saleType: 'DIRECT_SALE'
+    }
+  });
+
+  assert.equal(createListing.status, 201);
+  assert.equal(createListing.data.fishermanId, 1);
+  assert.equal(createListing.data.fishSpecies, dashboard.data.catches[0].fishSpecies);
 });

@@ -80,7 +80,8 @@ INSERT INTO fishing_trips (vessel_id, fisherman_id, departure_time, expected_ret
 INSERT INTO catch_records (fish_species, quantity, unit, quality, catch_date, catch_location, vessel_id, fishing_trip_id) VALUES
 ('Mackerel', 30, 'kg', 'A', '2026-09-22 09:00:00', 'Mangaluru Coast', 3, 2),
 ('Sardine', 45, 'kg', 'B', '2026-09-22 10:00:00', 'Mangaluru Coast', 2, 1),
-('Tuna', 20, 'kg', 'A', '2026-09-22 11:00:00', 'Mangaluru Coast', 4, 3);
+( 'Tuna', 20, 'kg', 'A', '2026-09-22 11:00:00', 'Mangaluru Coast', 4, 3),
+( 'Mackerel', 50, 'kg', 'A', '2026-09-22 08:30:00', 'Mangaluru Coast', 1, NULL);
 
 INSERT INTO fish_species (name, category) VALUES
 ('Mackerel', 'Pelagic'),

@@ -25,6 +25,13 @@
         <div class="voice-icon" aria-hidden="true">&#127908;</div>
         <h1>Voice Assistant</h1>
         <p>Speak naturally. I can help with your vessel, catch, listings, auctions and more.</p>
+        <label for="voiceLanguage">Language</label>
+        <select id="voiceLanguage" aria-label="Voice assistant language">
+          <option value="en">English</option>
+          <option value="kn">Kannada</option>
+          <option value="tulu">Tulu</option>
+          <option value="ml">Malayalam</option>
+        </select>
         <button id="startListeningBtn" class="microphone-button" aria-label="Start listening">&#127908;</button>
         <p><strong>Recognized Speech</strong></p>
         <div id="voiceTranscript" class="transcript">Ready when you are.</div>
@@ -42,6 +49,7 @@
         </ul>
       </section>
     </main>
+    <script src="js/fishSpecies.js"></script>
     <script src="js/api.js"></script>
     <script src="js/voiceAssistant.js"></script>
   </body>

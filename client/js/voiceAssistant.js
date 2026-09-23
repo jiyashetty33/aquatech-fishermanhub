@@ -1,155 +1,234 @@
 const voiceAssistant = {
   recognition: null,
   transcript: '',
-  context: {},
+  pendingConfirmation: null,
+  isListening: false,
+
+  safeParseAiResponse(response) {
+    let value = response;
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      if (value === null || value === undefined) return {};
+      if (typeof value === 'string') {
+        try { value = JSON.parse(value); } catch (error) { return {}; }
+        continue;
+      }
+      if (typeof value !== 'object') return {};
+      if (value.data && typeof value.data === 'object') { value = value.data; continue; }
+      if (value.response && typeof value.response === 'object') { value = value.response; continue; }
+      return value;
+    }
+    return {};
+  },
+
+  formatStatus(status) {
+    const labels = { AT_HARBOR: 'At Harbor', DEPARTED: 'Departed', FISHING: 'Fishing', RETURNING: 'Returning', ANCHORED: 'Anchored', ARRIVED: 'Arrived', DOCKED: 'Docked' };
+    return labels[status] || String(status || '').replace(/_/g, ' ');
+  },
+
+  showMessage(message) {
+    const box = document.getElementById('voiceResponse');
+    if (box) box.innerHTML = `<p>${message}</p>`;
+  },
+
+  speak(message) {
+    if ('speechSynthesis' in window) window.speechSynthesis.speak(new SpeechSynthesisUtterance(message));
+  },
+
+  async getDashboard() {
+    const token = localStorage.getItem('jwtToken');
+    return request('/fisherman/dashboard', { method: 'GET', token });
+  },
+
+  renderConfirmation(action) {
+    const box = document.getElementById('voiceResponse');
+    if (!box) return;
+    this.pendingConfirmation = action;
+    box.innerHTML = `
+      <div class="confirmation">
+        <h3>${action.title}</h3>
+        ${action.lines.map((line) => `<p>${line}</p>`).join('')}
+        <div class="confirmation-actions">
+          <button type="button" id="voiceConfirm">Confirm</button>
+          <button type="button" id="voiceCancel" class="secondary">Cancel</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('voiceConfirm').addEventListener('click', () => this.confirm());
+    document.getElementById('voiceCancel').addEventListener('click', () => {
+      this.pendingConfirmation = null;
+      this.showMessage('Action cancelled.');
+    });
+  },
+
+  async confirm() {
+    const action = this.pendingConfirmation;
+    if (!action) return;
+    const token = localStorage.getItem('jwtToken');
+    if (!token) { this.showMessage('Please log in again.'); return; }
+
+    try {
+      const dashboard = await this.getDashboard();
+      const vesselId = dashboard.vessel?.id;
+      let message;
+
+      if (action.intent === 'UPDATE_VESSEL_STATUS') {
+        await request(`/vessels/${vesselId}/status`, { method: 'PUT', token, body: JSON.stringify({ status: action.parameters.status, source: 'VOICE' }) });
+        message = `Vessel status updated to ${this.formatStatus(action.parameters.status)}.`;
+      } else {
+        if (!vesselId) throw new Error('missing vessel');
+        if (action.intent === 'RECORD_CATCH' || action.intent === 'RECORD_CATCH_AND_CREATE_AUCTION' || action.intent === 'RECORD_CATCH_AND_CREATE_DIRECT_SALE') {
+          await request('/catches', { method: 'POST', token, body: JSON.stringify({ fishSpecies: action.parameters.species, quantity: action.parameters.quantity, unit: 'kg', quality: action.parameters.quality || 'A', vesselId }) });
+        }
+        if (action.intent === 'CREATE_DIRECT_SALE' || action.intent === 'RECORD_CATCH_AND_CREATE_DIRECT_SALE') {
+          const listingQuantity = action.parameters.listingQuantity || action.parameters.quantity;
+          await request('/listings', { method: 'POST', token, body: JSON.stringify({ fishSpecies: action.parameters.species, quantity: listingQuantity, price: action.parameters.price, saleType: 'DIRECT_SALE' }) });
+          message = `${listingQuantity} kg of ${action.parameters.species} is now listed for direct sale.`;
+        } else if (action.intent === 'CREATE_AUCTION' || action.intent === 'RECORD_CATCH_AND_CREATE_AUCTION') {
+          const listingQuantity = action.parameters.listingQuantity || action.parameters.quantity;
+          await request('/auctions', { method: 'POST', token, body: JSON.stringify({ fishSpecies: action.parameters.species, quantity: listingQuantity, startingPrice: action.parameters.price, durationMinutes: 60 }) });
+          message = `${listingQuantity} kg of ${action.parameters.species} is now listed for auction.`;
+        } else {
+          message = `${action.parameters.quantity} kg of ${action.parameters.species} was recorded as your catch.`;
+        }
+      }
+
+      this.pendingConfirmation = null;
+      this.showMessage(message);
+      this.speak(message);
+    } catch (error) {
+      this.showMessage('Sorry, I could not complete that action. Please check the details and try again.');
+    }
+  },
+
+  async handleIntent(payload) {
+    const parsed = this.safeParseAiResponse(payload);
+    const intent = parsed.intent || 'UNKNOWN';
+    const parameters = parsed.parameters || {};
+    const missing = Array.isArray(parsed.missing || parsed.missingFields) ? (parsed.missing || parsed.missingFields) : [];
+
+    if (intent === 'CLARIFICATION_REQUIRED') {
+      this.showMessage(parsed.message || 'What would you like to do with this catch?');
+      return;
+    }
+    if (intent === 'UNKNOWN') { this.showMessage("I couldn't understand that. Please try again."); return; }
+    if (missing.includes('species')) { this.showMessage('Which fish species do you mean?'); return; }
+    if (missing.includes('quantity')) { this.showMessage(`How many kilos of ${parameters.species || 'fish'} would you like to use?`); return; }
+    if (missing.includes('listingQuantity')) { this.showMessage(`How many kilos of ${parameters.species} would you like to sell?`); return; }
+    if (missing.includes('price')) {
+      const pricePrompt = intent === 'CREATE_DIRECT_SALE' ? `What price would you like per kilo for ${parameters.species}?` : `What starting price would you like per kilo for ${parameters.species}?`;
+      this.showMessage(pricePrompt);
+      return;
+    }
+
+    if (intent === 'VIEW_MARKET_PRICE') {
+      if (!parameters.species) { this.showMessage('Which fish price would you like to know?'); return; }
+      const prices = await request('/prices', { method: 'GET', token: localStorage.getItem('jwtToken') });
+      const price = prices.find((entry) => entry.fishSpecies.toLowerCase() === parameters.species.toLowerCase());
+      this.showMessage(price ? `${price.fishSpecies} is currently ₹${price.recentPrice} per kg based on platform data.` : `I could not find a current platform price for ${parameters.species}.`);
+      return;
+    }
+    if (intent === 'VIEW_EARNINGS') {
+      const earnings = await request('/fisherman/earnings', { method: 'GET', token: localStorage.getItem('jwtToken') });
+      this.showMessage(`Your total earnings are ₹${earnings.totalEarnings || 0}.`);
+      return;
+    }
+    if (intent === 'VIEW_ORDERS') {
+      const orders = await request('/fisherman/orders', { method: 'GET', token: localStorage.getItem('jwtToken') });
+      this.showMessage(`You have ${orders.items?.length || 0} orders.`);
+      return;
+    }
+    if (intent === 'VIEW_AUCTIONS') {
+      const auctions = await request('/auctions', { method: 'GET', token: localStorage.getItem('jwtToken') });
+      this.showMessage(`There are ${auctions.filter((auction) => auction.status === 'ACTIVE').length} active auctions.`);
+      return;
+    }
+    if (intent === 'HELP') { this.showMessage('You can say: I caught 30 kilos of mackerel, or sell 10 kilos of sardines directly.'); return; }
+    if (intent === 'EMERGENCY_ALERT') { this.showMessage('Emergency alerts are available from the port support team.'); return; }
+
+    const dashboard = await this.getDashboard();
+    if (intent === 'UPDATE_VESSEL_STATUS') {
+      this.renderConfirmation({ intent, title: 'Update Vessel Status', parameters, lines: [`Vessel: ${dashboard.vessel?.name || 'Your vessel'}`, `New Status: ${this.formatStatus(parameters.status)}`] });
+      return;
+    }
+
+    if (intent === 'RECORD_CATCH') {
+      this.renderConfirmation({ intent, title: 'Record Catch', parameters, lines: [`${parameters.quantity} kg of ${parameters.species} will be recorded as your catch.`] });
+      return;
+    }
+
+    if (intent === 'CREATE_FISH_LISTING') {
+      this.showMessage(`Would you like to sell your ${parameters.species} directly or create an auction?`);
+      return;
+    }
+
+    if (intent === 'CREATE_DIRECT_SALE' || intent === 'RECORD_CATCH_AND_CREATE_DIRECT_SALE') {
+      if (!parameters.price) { this.showMessage(`What price would you like per kilo for ${parameters.species}?`); return; }
+      const listingQuantity = parameters.listingQuantity || parameters.quantity;
+      const lines = intent === 'RECORD_CATCH_AND_CREATE_DIRECT_SALE'
+        ? [`${parameters.quantity} kg of good-quality ${parameters.species} will be recorded.`, `${listingQuantity} kg will be listed for direct sale at ₹${parameters.price}/kg.`]
+        : [`${listingQuantity} kg of ${parameters.species}`, 'Direct Sale', `₹${parameters.price}/kg`];
+      this.renderConfirmation({ intent, title: 'Create Direct Sale', parameters, lines });
+      return;
+    }
+
+    if (intent === 'CREATE_AUCTION' || intent === 'RECORD_CATCH_AND_CREATE_AUCTION') {
+      const listingQuantity = parameters.listingQuantity || parameters.quantity;
+      const lines = intent === 'RECORD_CATCH_AND_CREATE_AUCTION'
+        ? [`${parameters.quantity} kg of ${parameters.species} will be recorded.`, `${listingQuantity} kg will be auctioned starting at ₹${parameters.price}/kg.`]
+        : [`${listingQuantity} kg of ${parameters.species}`, `Auction starting at ₹${parameters.price}/kg`];
+      this.renderConfirmation({ intent, title: 'Create Auction', parameters, lines });
+      return;
+    }
+
+    this.showMessage('I understood the request, but need a little more information.');
+  },
+
   start() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      this.setMessage('Speech recognition is not supported in this browser.');
-      return;
-    }
-
+    if (!SpeechRecognition) { this.showMessage('Speech recognition is not supported here. Please type your request instead.'); return; }
     this.recognition = new SpeechRecognition();
-    this.recognition.lang = 'en-IN';
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const languageSelect = document.getElementById('voiceLanguage');
+    const selectedLanguage = languageSelect?.value || user.language || 'en';
+    this.recognition.lang = selectedLanguage === 'kn' ? 'kn-IN' : selectedLanguage === 'ml' ? 'ml-IN' : selectedLanguage === 'tulu' ? 'kn-IN' : 'en-IN';
     this.recognition.continuous = false;
     this.recognition.interimResults = false;
-    this.recognition.onstart = () => this.setMessage('Listening...');
+    this.recognition.onstart = () => { this.isListening = true; document.getElementById('voiceTranscript').textContent = 'Listening...'; };
     this.recognition.onresult = async (event) => {
-      const transcript = event.results[0][0].transcript;
+      const transcript = event.results?.[0]?.[0]?.transcript?.trim();
+      if (!transcript) { this.showMessage('I did not hear anything. Please try again.'); return; }
       this.transcript = transcript;
-      const box = document.getElementById('voiceTranscript');
-      if (box) box.textContent = transcript;
-
+      document.getElementById('voiceTranscript').textContent = transcript;
       try {
-        const result = await request('/ai/command', {
-          method: 'POST',
-          token: localStorage.getItem('jwtToken'),
-          body: JSON.stringify({
-            text: transcript.trim(),
-            language: localStorage.getItem('language') || 'en',
-            context: this.context
-          })
-        });
-        this.context = result.context || this.context;
-        this.renderResult(result);
+        const response = await request('/ai/command', { method: 'POST', token: localStorage.getItem('jwtToken'), body: JSON.stringify({ text: transcript, language: selectedLanguage }) });
+        await this.handleIntent(response);
       } catch (error) {
-        this.setMessage(error.message);
+        console.error('Voice assistant request failed', error);
+        this.showMessage('Sorry, I could not process that request. Please try again.');
       }
     };
-    this.recognition.start();
-  },
-  speak(text) {
-    if ('speechSynthesis' in window) window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
-  },
-  setMessage(message) {
-    const responseBox = document.getElementById('voiceResponse');
-    if (responseBox) responseBox.textContent = message;
-  },
-  renderResult(result) {
-    const responseBox = document.getElementById('voiceResponse');
-    if (!responseBox) return;
-    if (result.missingFields?.length) {
-      const questions = {
-        species: 'Which fish would you like to use?',
-        quantity: 'How many kilos would you like to sell?',
-        price: 'What price would you like per kilo?',
-        startingPrice: 'What starting price would you like per kilo?',
-        saleType: 'Would you like to sell it directly or create an auction?'
-      };
-      const question = questions[result.missingFields[0]] || 'What detail should I use?';
-      this.setMessage(question);
-      this.speak(question);
-      return;
-    }
-    if (result.requiresConfirmation) {
-      const status = result.status || result.parameters?.status || 'RETURNING';
-      const title = result.intent === 'UPDATE_VESSEL_STATUS' ? 'Update Vessel Status' : 'Confirm Voice Action';
-      const detail = result.intent === 'UPDATE_VESSEL_STATUS'
-        ? `<p>Vessel: <strong id="assistantVesselName">Your vessel</strong></p><p>New Status: <strong>${status.replace(/_/g, ' ')}</strong></p>`
-        : `<div>${(result.actions || [result]).map((action) => `<p>${this.describeAction(action)}</p>`).join('')}</div><p>Please confirm.</p>`;
-      responseBox.innerHTML = `<div class="confirmation"><h3>${title}</h3>${detail}<div class="confirmation-actions"><button id="confirmVoiceAction">Confirm</button><button id="cancelVoiceAction" class="secondary">Cancel</button></div></div>`;
-      document.dispatchEvent(new CustomEvent('voice-confirmation-ready', { detail: result }));
-      return;
-    }
-    const messages = {
-      HELP: 'You can ask about your vessel, catches, listings, auctions, orders, earnings, or market prices.',
-      VIEW_EARNINGS: 'Your earnings are available from the dashboard.',
-      VIEW_ORDERS: 'Your latest orders are available from the dashboard.',
-      VIEW_AUCTIONS: 'Your active auctions are available from the dashboard.'
+    this.recognition.onerror = (event) => {
+      const messages = { 'not-allowed': 'Microphone permission was denied. Please allow microphone access and try again.', 'no-speech': 'I did not hear anything. Please try again.', 'audio-capture': 'No microphone was found. Please check your device.' };
+      this.showMessage(messages[event.error] || 'Speech recognition could not start. Please try again.');
     };
-    this.setMessage(messages[result.intent] || 'I understood your request. Please choose an available action from the dashboard.');
-  },
-  describeAction(result) {
-    const parameters = result.parameters || result;
-    if (result.intent === 'RECORD_CATCH') return `Record ${parameters.quantity} kg of ${parameters.species}.`;
-    if (result.intent === 'CREATE_AUCTION') return `Auction ${parameters.quantity} kg of ${parameters.species} at ₹${parameters.startingPrice}/kg.`;
-    if (result.intent === 'CREATE_DIRECT_SALE') return `Sell ${parameters.quantity} kg of ${parameters.species} at ₹${parameters.price}/kg.`;
-    if (result.intent === 'CREATE_FISH_LISTING') return `List ${parameters.quantity} kg of ${parameters.species}.`;
-    if (result.intent === 'START_FISHING_TRIP') return 'Start a new fishing trip.';
-    if (result.intent === 'END_FISHING_TRIP') return 'End the current fishing trip.';
-    return 'Apply this action?';
+    this.recognition.onend = () => { this.isListening = false; };
+    this.recognition.start();
   }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (!document.getElementById('voiceAssistantPage')) return;
   const token = localStorage.getItem('jwtToken');
-  if (!token) {
-    window.location.href = 'login.html';
-    return;
-  }
-
-  let vessel;
-  let dashboard;
-  request('/fisherman/dashboard', { method: 'GET', token }).then((dashboardData) => {
-    dashboard = dashboardData;
-    vessel = dashboardData.vessel;
-  }).catch(() => voiceAssistant.setMessage('Vessel information is temporarily unavailable.'));
-
-  document.getElementById('startListeningBtn').addEventListener('click', () => voiceAssistant.start());
-  document.addEventListener('voice-confirmation-ready', (event) => {
-    const vesselName = document.getElementById('assistantVesselName');
-    if (vesselName && vessel) vesselName.textContent = vessel.name;
-    document.getElementById('confirmVoiceAction').addEventListener('click', async () => {
-      if (event.detail.intent === 'UPDATE_VESSEL_STATUS' && !vessel) return voiceAssistant.setMessage('Vessel information is unavailable.');
-      try {
-        if (event.detail.intent === 'UPDATE_VESSEL_STATUS') {
-          const status = event.detail.parameters?.status || event.detail.status;
-          await request(`/vessels/${vessel.id}/status`, { method: 'PUT', token, body: JSON.stringify({ status, source: 'FISHERMAN' }) });
-          const readableStatus = status.replace(/_/g, ' ');
-          voiceAssistant.setMessage(`Vessel status updated to ${readableStatus}.`);
-          voiceAssistant.speak(`Your vessel status has been updated to ${readableStatus}.`);
-        } else if (!dashboard) {
-          voiceAssistant.setMessage('Dashboard information is unavailable.');
-        } else {
-          const actions = event.detail.actions || [event.detail];
-          const trip = dashboard.trips.find((entry) => entry.status === 'ACTIVE');
-          for (const action of actions) {
-            const parameters = action.parameters || action;
-            if (action.intent === 'RECORD_CATCH') {
-              await request('/catches', { method: 'POST', token, body: JSON.stringify({
-                fishSpecies: parameters.species,
-                quantity: parameters.quantity,
-                unit: parameters.unit || 'kg',
-                quality: parameters.quality || 'A',
-                vesselId: vessel.id,
-                fishingTripId: trip?.id || null
-              }) });
-            } else if (action.intent === 'CREATE_AUCTION') {
-              await request('/auctions', { method: 'POST', token, body: JSON.stringify({ fishSpecies: parameters.species, quantity: parameters.quantity, startingPrice: parameters.startingPrice, quality: parameters.quality || 'A' }) });
-            } else if (action.intent === 'CREATE_DIRECT_SALE' || action.intent === 'CREATE_FISH_LISTING') {
-              await request('/listings', { method: 'POST', token, body: JSON.stringify({ fishSpecies: parameters.species, quantity: parameters.quantity, price: parameters.price, quality: parameters.quality || 'A', saleType: action.intent === 'CREATE_DIRECT_SALE' ? 'DIRECT_SALE' : parameters.saleType }) });
-            } else if (action.intent === 'START_FISHING_TRIP') {
-              await request('/fishing-trips', { method: 'POST', token, body: JSON.stringify({ vesselId: vessel.id, fishermanId: dashboard.fisherman.id, status: 'ACTIVE' }) });
-            }
-          }
-          voiceAssistant.setMessage('Your catch and sale details were saved successfully.');
-          voiceAssistant.speak('Your catch and sale details were saved successfully.');
-        }
-      } catch (error) {
-        voiceAssistant.setMessage(error.message);
-      }
+  if (!token) { window.location.href = 'login.html'; return; }
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const languageSelect = document.getElementById('voiceLanguage');
+  if (languageSelect) {
+    languageSelect.value = user.language || 'en';
+    languageSelect.addEventListener('change', () => {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      currentUser.language = languageSelect.value;
+      localStorage.setItem('user', JSON.stringify(currentUser));
     });
-    document.getElementById('cancelVoiceAction').addEventListener('click', () => voiceAssistant.setMessage('Update cancelled.'));
-  });
+  }
+  const button = document.getElementById('startListeningBtn');
+  if (button) button.addEventListener('click', () => voiceAssistant.start());
 });

@@ -18,11 +18,14 @@ const ordersRoutes = require('./routes/orders');
 const pricesRoutes = require('./routes/prices');
 const notificationsRoutes = require('./routes/notifications');
 const aiRoutes = require('./routes/ai');
+const fishSpecies = require('./services/fishSpecies');
+const db = require('./db');
 
 dotenv.config();
 
 function createDemoData() {
   return {
+    fishSpecies,
     users: [
       { id: 1, email: 'admin@demo.local', fullName: 'Admin User', phone: '9000000001', role: 'ADMIN', language: 'en', passwordHash: bcrypt.hashSync('admin123', 10), isActive: true },
       { id: 2, email: 'official1@demo.local', fullName: 'Port Official One', phone: '9000000002', role: 'PORT_OFFICIAL', language: 'en', passwordHash: bcrypt.hashSync('official123', 10), isActive: true },
@@ -62,7 +65,8 @@ function createDemoData() {
     ],
     catches: [
       { id: 1, fishSpecies: 'Mackerel', quantity: 30, unit: 'kg', quality: 'A', catchDate: '2026-09-22T09:00:00Z', catchLocation: 'Mangaluru Coast', vesselId: 3, fishingTripId: 2 },
-      { id: 2, fishSpecies: 'Sardine', quantity: 45, unit: 'kg', quality: 'B', catchDate: '2026-09-22T10:00:00Z', catchLocation: 'Mangaluru Coast', vesselId: 2, fishingTripId: 1 }
+      { id: 2, fishSpecies: 'Sardine', quantity: 45, unit: 'kg', quality: 'B', catchDate: '2026-09-22T10:00:00Z', catchLocation: 'Mangaluru Coast', vesselId: 2, fishingTripId: 1 },
+      { id: 3, fishSpecies: 'Mackerel', quantity: 50, unit: 'kg', quality: 'A', catchDate: '2026-09-22T08:30:00Z', catchLocation: 'Mangaluru Coast', vesselId: 1, fishingTripId: null }
     ],
     listings: [
       { id: 1, fishermanId: 1, fishSpecies: 'Mackerel', quantity: 50, availableQuantity: 50, quality: 'A', price: 300, saleType: 'AUCTION', status: 'ACTIVE', createdAt: new Date().toISOString() },
@@ -109,7 +113,18 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.locals.data = createDemoData();
 
-app.get('/api/health', (req, res) => res.json({ ok: true, message: 'Fisherman API is running.' }));
+app.get('/api/health', async (req, res) => {
+  if (process.env.DB_MODE === 'memory') {
+    return res.json({ ok: true, server: 'running', database: 'memory-mode' });
+  }
+  try {
+    await db.query('SELECT 1 AS connected');
+    return res.json({ ok: true, server: 'running', database: 'connected', databaseName: process.env.DB_NAME });
+  } catch (error) {
+    console.error('Health database check failed:', error);
+    return res.status(503).json({ ok: false, server: 'running', database: 'unavailable', message: 'Database unavailable.' });
+  }
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/official', officialRoutes);
@@ -130,9 +145,18 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/login.html'));
 });
 
-function startServer(port = Number(process.env.PORT || 3000)) {
-  return new Promise((resolve) => {
+async function startServer(port = Number(process.env.PORT || 3000)) {
+  if (process.env.DB_MODE !== 'memory') {
+    try {
+      await db.query('SELECT 1 AS connected');
+    } catch (error) {
+      throw new Error(`MySQL connection failed. Check DB_HOST, DB_PORT, DB_USER, DB_PASSWORD and DB_NAME. ${error.message}`);
+    }
+  }
+
+  return new Promise((resolve, reject) => {
     const server = app.listen(port, () => resolve(server));
+    server.on('error', reject);
   });
 }
 
@@ -140,6 +164,9 @@ if (require.main === module) {
   startServer().then((server) => {
     const actualPort = server.address().port;
     console.log(`Server running on http://localhost:${actualPort}`);
+  }).catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
   });
 }
 

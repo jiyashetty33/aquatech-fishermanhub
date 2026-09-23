@@ -4,7 +4,6 @@ body {
   color: #12314a;
   font-family: Arial, sans-serif;
 }
-*, *::before, *::after { box-sizing: border-box; }
 .fisherman-app {
   max-width: 1200px;
   margin: 0 auto;
@@ -18,7 +17,7 @@ body {
 }
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 1rem;
 }
 .card {
@@ -35,27 +34,32 @@ button {
   padding: 0.8rem 1rem;
   margin: 0.25rem 0;
   font-weight: 600;
-  max-width: 100%;
-  cursor: pointer;
 }
 button.secondary { background: #dfeffd; color: #12314a; }
 .voice-btn { background: linear-gradient(135deg, #1084c3, #1fb7d9); }
-.voice-entry { display: flex; justify-content: space-between; align-items: center; gap: 1rem; background: linear-gradient(135deg, #ffffff, #e9f8ff); }
-.voice-entry p { max-width: 34rem; color: #527087; }
-.eyebrow { color: #1273b5; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
-.voice-link { display: flex; align-items: center; gap: 0.6rem; min-width: 12rem; justify-content: center; padding: 1rem; border-radius: 12px; background: #1273b5; color: white; text-decoration: none; font-weight: 700; }
-.voice-icon { font-size: 1.5rem; }
 input, select { width: 100%; margin-bottom: 0.7rem; padding: 0.75rem; border-radius: 10px; border: 1px solid #cfe3f5; }
-.panel form { display: grid; gap: 0.1rem; }
-.panel form button { width: 100%; }
-.panel:nth-child(2) { display: flex; flex-direction: column; }
-.panel:nth-child(2) button { width: 100%; }
+.available-quantity { min-height: 1.4rem; margin: -0.2rem 0 0.7rem; color: #527087; font-size: 0.95rem; }
 .status-box { margin-top: 0.8rem; min-height: 2rem; }
+.voice-confirmation-card {
+  background: #f3fbff;
+  border: 1px solid #cfe8ff;
+  border-radius: 14px;
+  padding: 1rem;
+  margin-top: 0.75rem;
+  box-shadow: 0 8px 16px rgba(18, 49, 74, 0.08);
+}
+.voice-confirmation-card h4 {
+  margin: 0 0 0.75rem;
+}
+.voice-confirmation-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.voice-confirmation-actions button {
+  flex: 1;
+}
 @media (max-width: 600px) {
   .topbar { flex-direction: column; align-items: flex-start; }
-  .voice-entry { align-items: stretch; flex-direction: column; }
-  .dashboard-grid { grid-template-columns: 1fr; }
-}
-@media (min-width: 601px) and (max-width: 900px) {
-  .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .voice-confirmation-actions { flex-direction: column; }
 }

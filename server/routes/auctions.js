@@ -10,26 +10,37 @@ router.get('/', authenticateToken, authorizeRole('FISHERMAN', 'BUYER', 'MARKET_O
 
 router.post('/', authenticateToken, authorizeRole('FISHERMAN', 'ADMIN'), (req, res) => {
   const { fishSpecies, quantity, startingPrice, durationMinutes = 60 } = req.body || {};
-  const fisherData = req.app.locals.data.fishermen.find((entry) => entry.userId === req.user.id) || req.app.locals.data.fishermen[0];
-  const requestedQuantity = Number(quantity);
-  const caughtQuantity = req.app.locals.data.catches
-    .filter((entry) => entry.vesselId === fisherData.vesselId && entry.fishSpecies.toLowerCase() === String(fishSpecies).toLowerCase())
-    .reduce((total, entry) => total + Number(entry.quantity || 0), 0);
-  const listedQuantity = req.app.locals.data.listings
-    .filter((entry) => entry.fishermanId === fisherData.id && entry.fishSpecies.toLowerCase() === String(fishSpecies).toLowerCase() && entry.status === 'ACTIVE')
-    .reduce((total, entry) => total + Number(entry.availableQuantity || entry.quantity || 0), 0);
-  if (caughtQuantity > 0 && requestedQuantity > caughtQuantity - listedQuantity) {
-    return res.status(400).json({ message: `Only ${Math.max(0, caughtQuantity - listedQuantity)} kg of ${fishSpecies} is available to auction.` });
+  const data = req.app.locals.data;
+  const fisherman = data.fishermen.find((entry) => entry.userId === req.user.id);
+  const species = data.fishSpecies.find((entry) => entry.toLowerCase() === String(fishSpecies || '').trim().toLowerCase());
+  const parsedQuantity = Number(quantity);
+  const parsedPrice = Number(startingPrice);
+
+  if (!species || !Number.isFinite(parsedQuantity) || parsedQuantity <= 0 || !Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+    return res.status(400).json({ message: 'Fish species, quantity and starting price are required.' });
+  }
+
+  const fisherData = fisherman || data.fishermen[0];
+  const caughtQuantity = data.catches
+    .filter((catchEntry) => catchEntry.vesselId === fisherData.vesselId && catchEntry.fishSpecies.toLowerCase() === species.toLowerCase())
+    .reduce((total, catchEntry) => total + Number(catchEntry.quantity || 0), 0);
+  const listedQuantity = data.listings
+    .filter((listing) => listing.fishermanId === fisherData.id && listing.status === 'ACTIVE' && listing.fishSpecies.toLowerCase() === species.toLowerCase())
+    .reduce((total, listing) => total + Number(listing.quantity || 0), 0);
+  const availableQuantity = Math.max(0, caughtQuantity - listedQuantity);
+
+  if (req.user.role === 'FISHERMAN' && (!fisherman || parsedQuantity > availableQuantity)) {
+    return res.status(400).json({ message: `You only have ${availableQuantity} kg of ${species} available.` });
   }
 
   const auction = {
     id: Date.now(),
     listingId: Date.now() + 10,
     fishermanId: fisherData.id,
-    fishSpecies,
-    quantity: requestedQuantity,
-    startingPrice: Number(startingPrice),
-    currentBid: Number(startingPrice),
+    fishSpecies: species,
+    quantity: parsedQuantity,
+    startingPrice: parsedPrice,
+    currentBid: parsedPrice,
     currentBidderId: null,
     status: 'ACTIVE',
     durationMinutes,
@@ -40,11 +51,11 @@ router.post('/', authenticateToken, authorizeRole('FISHERMAN', 'ADMIN'), (req, r
   req.app.locals.data.listings.push({
     id: auction.listingId,
     fishermanId: fisherData.id,
-    fishSpecies,
-    quantity: requestedQuantity,
-    availableQuantity: requestedQuantity,
+    fishSpecies: species,
+    quantity: parsedQuantity,
+    availableQuantity: parsedQuantity,
     quality: 'A',
-    price: Number(startingPrice),
+    price: parsedPrice,
     saleType: 'AUCTION',
     status: 'ACTIVE',
     createdAt: new Date().toISOString()
