@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 # AI-Powered Digital Fisheries Marketplace and Port Management System
 
@@ -49,3 +50,6 @@ This application connects fishermen, buyers, and port officials through a digita
 This project is intentionally simple and designed for teaching and hackathon demonstration. It does not use external payment gateways, real GPS, or real emergency dispatch integration.
 
 
+=======
+# aquatech-fishermanhub
+>>>>>>> ac365851de56048c7290aea7cb3c0d28d80e52d6
